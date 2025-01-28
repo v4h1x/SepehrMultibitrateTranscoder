@@ -1,0 +1,4 @@
+#!/bin/bash
+find /var/www/html/ayyamhd -name '*.ts' -mmin +61 -delete
+cp /etc/system/ayyam.m3u8 /var/www/html/ayyamhd/ayyamhd.m3u8
+VHXTranscoder -xerror -v quiet -f flv -i rtmp://192.168.133.110/live/ayyam -map 0:v -c:v copy -map 0:a -c:a libfdk_aac -b:a 80k -map_metadata -1 -metadata service_provider="VHX" -metadata service_name="ayyam" -f hls -var_stream_map "v:0,a:0,name:1080p" -hls_ts_options mpegts_copyts=1 -ignore_io_errors 1 -hls_flags delete_segments+append_list+split_by_time+round_durations -hls_time 10 -hls_list_size 360 -hls_start_number_source datetime "/var/www/html/ayyamhd/%v.m3u8"

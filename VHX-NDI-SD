@@ -1,0 +1,11 @@
+#!/bin/bash
+
+cp /etc/system/masterHD /var/www/html/${NAME}/${NAME}.m3u8
+
+case "$LOGO" in
+	1)
+		VHX-NDI-ENCODER -v quiet -xerror -start_at_zero -copyts -copytb 1 -avioflags direct -fflags genpts+discardcorrupt+nobuffer+flush_packets -flush_packets 1 -allow_video_fields false -f libndi_newtek -i "$INPUT" -i /etc/system/logohd.png -filter_complex "[0:v]fps=fps=25,format=pix_fmts=yuv420p[main];[main][1:v]overlay=x=1167:y=567,split=3[outv2][outp3][outp4];[outp3]zscale=w=768:h=432[outv3];[outp4]zscale=w=576:h=324[outv4]" -map "[outv2]" -map 0:a -map "[outv3]" -map 0:a -map "[outv4]" -map 0:a -c:v h264_nvenc -gpu ${GPU} -preset:v p1 -rc 0 -qp 28 -g 125 -profile:v 2 -bf:v 4 -b_ref_mode 2 -forced-idr 1 -strict_gop 1 -c:a libfdk_aac -b:a 96k -enc_time_base 0 -ignore_unknown -sn -dn -aspect 16:9 -avioflags direct -fflags flush_packets -f hls -var_stream_map "v:0,a:0,name:720p v:1,a:1,name:432p v:2,a:2,name:324p" -fflags flush_packets -flush_packets 1 -ignore_io_errors 1 -hls_flags delete_segments+append_list+split_by_time+temp_file+round_durations -hls_time 10 -hls_list_size 360 -hls_start_number_source datetime "/var/www/html/${NAME}/%v.m3u8"	;;
+	*)
+		VHX-NDI-ENCODER -v quiet -xerror -start_at_zero -copyts -copytb 1 -avioflags direct -fflags genpts+discardcorrupt+nobuffer+flush_packets -flush_packets 1 -allow_video_fields false -f libndi_newtek -i "$INPUT" -filter_complex "[0:v]fps=fps=25,format=pix_fmts=yuv420p,split=3[outv2][outp3][outp4];[outp3]zscale=w=768:h=432[outv3];[outp4]zscale=w=576:h=324[outv4]" -map "[outv2]" -map 0:a -map "[outv3]" -map 0:a -map "[outv4]" -map 0:a -c:v h264_nvenc -gpu ${GPU} -preset:v p1 -rc 0 -qp 28 -g 125 -profile:v 2 -bf:v 4 -b_ref_mode 2 -forced-idr 1 -strict_gop 1 -c:a libfdk_aac -b:a 96k -enc_time_base 0 -ignore_unknown -sn -dn -aspect 16:9 -avioflags direct -fflags flush_packets -f hls -var_stream_map "v:0,a:0,name:720p v:1,a:1,name:432p v:2,a:2,name:324p" -fflags flush_packets -flush_packets 1 -ignore_io_errors 1 -hls_flags delete_segments+append_list+split_by_time+temp_file+round_durations -hls_time 10 -hls_list_size 360 -hls_start_number_source datetime "/var/www/html/${NAME}/%v.m3u8"
+	;;
+esac

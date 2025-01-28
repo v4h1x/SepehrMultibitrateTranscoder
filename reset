@@ -1,0 +1,7 @@
+#!/bin/bash
+find /var/www/html/* -name '*.ts' -mmin +61 -delete
+a=$(ls -l /var/www/html/* | grep -o -P '(?<=/var/www/html/).*(hd|sd)')
+for i in $a
+do name=$(echo "${i::-2}"); systemctl restart $name
+sleep 30
+done

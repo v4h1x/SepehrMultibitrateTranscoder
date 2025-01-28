@@ -1,0 +1,95 @@
+#!/bin/bash
+
+info=$(VHXTranscoder -v 32 -localaddr ${LOCALS} -timeout 5000000 -f mpegts -i udp://${INPUTS} 2>&1- )
+dimension=$(echo $info | egrep -o '[0-9]{3,4}x[0-9]{3,4}' )
+hevc=$(echo $info | grep -c hevc )
+h264=$(echo $info | grep -c h264 )
+mpeg2=$(echo $info | grep -c mpeg2video )
+m10=$(echo $info | grep -c "Main 10" )
+
+if [ $hevc == 1 ]
+then
+vf=hevc_cuvid
+elif [ $h264 == 1 ]
+then
+vf=h264_cuvid
+elif [ $mpeg2 == 1 ]
+then
+vf=mpeg2_cuvid
+fi
+cf=nv12
+
+case "$DEINTERLACE" in
+	1)
+		frame=i
+	;;
+	*)
+		case "$m10" in
+			1)
+				frame=p10 && cf=p010le
+			;;
+			*)
+				frame=p
+			;;
+		esac
+	;;
+esac
+
+decoder="-hwaccel cuvid -hwaccel_device ${GPU} -c:v ${vf} -surfaces 20 -hwaccel_output_format ${cf}"
+map_fhd="-map "[outv1]" -map 0:a"
+map="-map "[outv2]" -map 0:a:0 -map "[outv3]" -map 0:a:0 -map "[outv4]" -map 0:a:0"
+hls_fhd="v:0,a:0,name:1080p v:1,a:1,name:720p v:2,a:2,name:432p v:3,a:3,name:324p"
+hls_hd="v:0,a:0,name:720p v:1,a:1,name:432p v:2,a:2,name:324p"
+hls_sd="v:0,a:0,name:576p v:1,a:1,name:432p v:2,a:2,name:324p"
+hls_options="-ignore_io_errors 1 -hls_flags delete_segments+append_list+temp_file+split_by_time+round_durations+discont_start -hls_time 10 -hls_list_size 360 -hls_start_number_source datetime "/var/www/html/${NAME}/%v.m3u8""
+
+logofhdp10=""[0:v]fps=fps=25,hwupload_cuda=device=${GPU},scale_cuda=format=yuv420p[main]";"[1:v]hwupload_cuda=device=${GPU}[logo]";"[main][logo]overlay_cuda=x=1750:y=850,split=4[outv1][outp2][outp3][outp4]";"[outp2]scale_cuda=w=1280:h=720[outv2]";"[outp3]scale_cuda=w=768:h=432[outv3]";"[outp4]scale_cuda=w=576:h=324[outv4]""
+logofhdp=""[0:v]fps=fps=25,hwupload_cuda=device=${GPU},scale_cuda=format=yuv420p[main]";"[1:v]hwupload_cuda=device=${GPU}[logo]";"[main][logo]overlay_cuda=x=1750:y=850,split=4[outv1][outp2][outp3][outp4]";"[outp2]scale_cuda=w=1280:h=720[outv2]";"[outp3]scale_cuda=w=768:h=432[outv3]";"[outp4]scale_cuda=w=576:h=324[outv4]""
+logofhdi=""[0:v]hwupload_cuda=device=${GPU},yadif_cuda=0:0:0,scale_cuda=format=yuv420p[main]";"[1:v]hwupload_cuda=device=${GPU}[logo]";"[main][logo]overlay_cuda=x=1750:y=850,split=4[outv1][outp2][outp3][outp4]";"[outp2]scale_cuda=w=1280:h=720[outv2]";"[outp3]scale_cuda=w=768:h=432[outv3]";"[outp4]scale_cuda=w=576:h=324[outv4]""
+logohdp=""[0:v]fps=fps=25,hwupload_cuda=device=${GPU},scale_cuda=format=yuv420p[main]";"[1:v]hwupload_cuda=device=${GPU}[logo]";"[main][logo]overlay_cuda=x=1167:y=567,split=3[outv2][outp3][outp4]";"[outp3]scale_cuda=w=768:h=432[outv3]";"[outp4]scale_cuda=w=576:h=324[outv4]""
+logosdi=""[0:v]hwupload_cuda=device=${GPU},yadif_cuda=0:0:0,scale_npp=w=1024:h=576:interp_algo=16:format=yuv420p[main]";"[1:v]hwupload_cuda=device=${GPU}[logo]";"[main][logo]overlay_cuda=x=934:y=454,split=3[outv2][outp3][outp4]";"[outp3]scale_npp=w=768:h=432:interp_algo=16[outv3]";"[outp4]scale_npp=w=576:h=324:interp_algo=16[outv4]""
+
+
+filterfhdp10=""[0:v]fps=fps=25,hwupload_cuda=device=${GPU},split=4[outp1][outp2][outp3][outp4]";"[outp1]scale_cuda=format=yuv420p[outv1]";"[outp2]scale_cuda=w=1280:h=720:format=yuv420p[outv2]";"[outp3]scale_cuda=w=768:h=432:format=yuv420p[outv3]";"[outp4]scale_cuda=w=576:h=324:format=yuv420p[outv4]""
+filterfhdp=""[0:v]fps=fps=25,hwupload_cuda=device=${GPU},split=4[outv1][outp2][outp3][outp4]";"[outp2]scale_cuda=w=1280:h=720[outv2]";"[outp3]scale_cuda=w=768:h=432[outv3]";"[outp4]scale_cuda=w=576:h=324[outv4]""
+filterfhdi=""[0:v]hwupload_cuda=device=${GPU},yadif_cuda=0:0:0,split=4[outv1][outp2][outp3][outp4]";"[outp2]scale_cuda=w=1280:h=720[outv2]";"[outp3]scale_cuda=w=768:h=432[outv3]";"[outp4]scale_cuda=w=576:h=324[outv4]""
+filterhdp=""[0:v]fps=fps=25,hwupload_cuda=device=${GPU},split=3[outv2][outp3][outp4]";"[outp3]scale_cuda=w=768:h=432[outv3]";"[outp4]scale_cuda=w=576:h=324[outv4]""
+filtersdi=""[0:v]hwupload_cuda=device=${GPU},yadif_cuda=0:0:0,split=3[outp2][outp3][outp4]";"[outp2]scale_npp=w=1024:h=576:interp_algo=16[outv2]";"[outp3]scale_npp=w=768:h=432:interp_algo=16[outv3]";"[outp4]scale_npp:interp_algo=16=w=576:h=324[outv4]""
+
+case "$dimension" in
+	"1920x1080")
+		cp /etc/system/masterFHD /var/www/html/${NAME}/${NAME}.m3u8
+		map="${map_fhd} ${map}" && hls=${hls_fhd} && res=fhd && q=28 && logo="/etc/system/logofhd.png"
+		;;
+	
+   "1280x720")
+		cp /etc/system/masterHD /var/www/html/${NAME}/${NAME}.m3u8
+		hls=${hls_hd} && res=hd && q=26 && logo="/etc/system/logohd.png"
+		;;
+		
+  "720x576"|"704x576"|"544x576")
+		cp /etc/system/masterSD /var/www/html/${NAME}/${NAME}.m3u8
+		hls=${hls_sd} && res=sd && q=25 && logo="/etc/system/logosd.png"
+		;;
+		*)
+			wall -n "invalid input $INPUTS" 111
+			sleep 30
+		;;
+esac
+
+encoder="-c:v h264_nvenc -gpu ${GPU} -preset:v p1 -rc 0 -qp ${q} -g 125 -profile:v 2 -bf:v 4 -b_ref_mode 2 -coder 1 -surfaces 5 -rc-lookahead 5 -b_adapt 0 -forced-idr 1 -strict_gop 1 -spatial-aq 1"
+
+case "$LOGO" in
+	1)
+		filter=logo && logoin="-i $logo"
+	;;
+	*)
+		filter=filter
+	;;
+esac
+
+filter=${filter}${res}${frame}
+
+export CUDA_DEVICE_MAX_CONNECTIONS=1
+
+tsp -r --receive-timeout 30000000  -I ip -l ${LOCALS} --timestamp-priority kernel-tsp ${INPUTS} -P continuity -f | VHXTranscoder -v quiet -copyts -copytb 1 -avioflags direct -fflags genpts+discardcorrupt+nobuffer+flush_packets -flush_packets 1 -vsync 0 ${decoder} -f mpegts -i - ${logoin} -metadata title=${NAME} -filter_complex """${!filter}""" ${map} ${encoder} -c:a libfdk_aac -b:a 96k -enc_time_base 0 -ignore_unknown -sn -dn -aspect 16:9 -avioflags direct -fflags flush_packets -f hls -var_stream_map """${hls}""" ${hls_options}

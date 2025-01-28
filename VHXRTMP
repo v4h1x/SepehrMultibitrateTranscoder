@@ -1,0 +1,35 @@
+#!/bin/bash
+
+info=$(VHXTranscoder -v 32 -i rtmp://${INPUT} 2>&1- )
+dimension=$(echo $info | egrep -o '[0-9]{3,4}x[0-9]{3,4}' )
+
+hls_fhd="v:0,a:0,name:1080p"
+hls_hd="v:0,a:0,name:720p"
+hls_sd="v:0,a:0,name:576p"
+hls_options="-ignore_io_errors 1 -hls_flags delete_segments+append_list+split_by_time+temp_file+round_durations+discont_start -hls_time 10 -hls_list_size 360 -hls_start_number_source datetime "/var/www/html/${NAME}/%v.m3u8""
+
+case "$dimension" in
+	"1920x1080")
+		cp /etc/system/singleFHD /var/www/html/${NAME}/${NAME}.m3u8
+		hls=${hls_fhd}
+		;;
+	
+   "1280x720")
+		cp /etc/system/singleHD /var/www/html/${NAME}/${NAME}.m3u8
+		hls=${hls_hd}
+		;;
+		
+  "720x576"|"704x576"|"544x576")
+		cp /etc/system/singleSD /var/www/html/${NAME}/${NAME}.m3u8
+		hls=${hls_sd}
+		;;
+		*)
+#			wall -n "invalid input $INPUT from $NAME" at $(date)
+			sleep 60
+		;;
+esac
+
+find /var/www/html/${NAME} -name '*.ts' -mmin +61 -delete
+find /var/www/html/${NAME} -name '*.tmp' -delete
+
+VHXTranscoder -v quiet -xerror -abort_on empty_output -flush_packets 1 -fflags genpts+discardcorrupt+nobuffer+flush_packets -vsync passthrough -copyts -copytb 1 -i rtmp://${INPUT} -metadata title=${NAME} -map 0:v -c:v copy -map 0:a -c:a copy -ignore_unknown -sn -dn -aspect 16:9 -fflags flush_packets -f hls -var_stream_map """${hls}""" ${hls_options}

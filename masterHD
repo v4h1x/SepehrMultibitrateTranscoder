@@ -1,0 +1,22 @@
+#EXTM3U
+# 
+#01110110 01100001 01101000 01101001 01100100  01101011 01101000 01100001 01101101 01100101 01110011 01101001
+#
+#
+#
+#          _)       _)  |       _)       
+#      _ \  |   __|  |  __ \     |   __| 
+#      __/  |  |     |  |   |    |  |    
+#    \___| _| _|    _| _.__/ _) _| _|    
+#                                     
+#
+#                            
+#EXT-X-VERSION:3
+#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1200000,LANGUAGE="per"
+720p.m3u8
+
+#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=600000,LANGUAGE="per"
+432p.m3u8
+
+#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=400000,LANGUAGE="per"
+324p.m3u8

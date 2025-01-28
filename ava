@@ -1,0 +1,2 @@
+#!/bin/bash
+tsp -r --receive-timeout 30000000  -I ip -l 192.168.102.106 --timestamp-priority kernel-tsp 236.2.1.2:2002 -P continuity -f | VHXTranscoder -v quiet -r 25 -i - -map 0:a -c:v copy -c:a libfdk_aac -b:a 256k -enc_time_base 0 -ignore_unknown -sn -dn -aspect 16:9 -avioflags direct -fflags flush_packets -f hls -hls_segment_options mpegts_copyts=1 -ignore_io_errors 1 -hls_flags delete_segments+append_list+split_by_time+round_durations -hls_time 10 -hls_list_size 3 -hls_segment_filename '/var/www/html/ava/%03d.ts' /var/www/html/ava/ava.m3u8

@@ -1,0 +1,19 @@
+#!/bin/bash
+free=$(nvidia-smi --query-gpu=index,memory.free --format=csv,noheader | grep -o -P '(?<=0, ).*(?= MiB)')
+if [ "$free" -lt 100 ]
+then
+pkill -9 VHX
+fi
+free=$(nvidia-smi --query-gpu=index,memory.free --format=csv,noheader | grep -o -P '(?<=1, ).*(?= MiB)')
+if [ "$free" -lt 100 ]
+then
+pkill -9 VHX
+fi
+cd /var/www/html
+a=$(find * -maxdepth 1 -type d)
+for i in ${a[@]}; do
+name=$(echo "$i" | sed -e "s/hd//" -e "s/sd//")
+b=$(find /var/www/html/$i -name '*.ts' -newermt '-10 seconds')
+if [ -z "$b" ]; then systemctl restart $name; fi
+sleep 20
+done

@@ -1,0 +1,2 @@
+#ffmpeg -v quiet -re -i https://stream01.nasimrezvan.com/hls/goHbjWCkGYDnCbktiPWdmxco/index.m3u8 -c copy -map 0:v -map 0:a:0  -f mpegts -localaddr 192.168.107.106 udp://224.3.1.7:3007?pkt_size=1316
+ffmpeg -v quiet -re -i http://87.107.99.18:88/live/nasimrezvan/nasimrezvan.m3u8 -c copy -map 0:v -map 0:a:0  -f mpegts -localaddr 192.168.107.106 udp://224.3.1.7:3007?pkt_size=1316
